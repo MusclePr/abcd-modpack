@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>target/abcd-modpack-1.0.jar</jar>
+  <outfile>target/abcd-modpack-updater.exe</outfile>
+  <errTitle>A-B-C-D Modpack Error</errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl>https://adoptium.net/temurin/releases/</downloadUrl>
+  <supportUrl>https://a-b-c-d.com/</supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon>src/main/resources/icon.ico</icon>
+  <jre>
+    <path></path>
+    <bundledJre64Bit>false</bundledJre64Bit>
+    <bundledJreAsFallback>false</bundledJreAsFallback>
+    <minVersion>17.0.0</minVersion>
+    <maxVersion></maxVersion>
+    <jdkPreference>preferJre</jdkPreference>
+    <runtimeBits>64/32</runtimeBits>
+  </jre>
+  <versionInfo>
+    <fileVersion>1.0.0.0</fileVersion>
+    <txtFileVersion>1.0.0</txtFileVersion>
+    <fileDescription>A-B-C-D Minecraft Modpack Updater</fileDescription>
+    <copyright>2025 A-B-C-D</copyright>
+    <productVersion>1.0.0.0</productVersion>
+    <txtProductVersion>1.0.0</txtProductVersion>
+    <productName>A-B-C-D Modpack Updater</productName>
+    <companyName>A-B-C-D</companyName>
+    <internalName>abcd-modpack</internalName>
+    <originalFilename>abcd-modpack-updater.exe</originalFilename>
+  </versionInfo>
+  <messages>
+    <startupErr>Java Runtime Environment が見つかりません。Java 17以上をインストールしてください。</startupErr>
+    <bundledJreErr>Java Runtime Environment が見つかりません。</bundledJreErr>
+    <jreVersionErr>このアプリケーションには Java 17以上が必要です。</jreVersionErr>
+    <launcherErr>起動に失敗しました。</launcherErr>
+  </messages>
+</launch4jConfig>
