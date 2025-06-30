@@ -91,8 +91,14 @@ certificates/
 ### EXEファイルへの署名
 
 ```powershell
-# PFXファイルを使用して署名（.envファイルからパスワードを自動読み込み）
+# 標準署名（PowerShell署名）
 .\sign-exe.ps1
+
+# 高度な署名手法（Launch4j JAR構造保護、推奨）
+.\sign-exe-advanced.ps1
+
+# 詳細情報付きで実行
+.\sign-exe-advanced.ps1 -ShowDetails
 
 # 明示的にPFXファイルとパスワードを指定
 .\sign-exe.ps1 -PfxPath ".\certificates\code-signing-certificate.pfx" -Password "カスタムパスワード"
@@ -100,6 +106,56 @@ certificates/
 # 証明書ストアの証明書を使用して署名
 .\sign-exe.ps1 -CertThumbprint "証明書の拇印"
 ```
+
+#### 高度な署名手法について
+
+`.\sign-exe-advanced.ps1` は、Launch4j EXE内のJAR構造を保護する革新的な署名手法を使用します：
+
+##### 技術的背景
+
+Launch4jの **wrapping** モードでは、JARファイルがEXE内に埋め込まれますが、従来の署名方法では以下の問題が発生していました：
+
+- **JAR破損**: 署名データの追加により内部JARのオフセットがずれる
+- **ZIP構造の破綻**: Central Directoryの位置情報が無効になる
+- **実行エラー**: 「Invalid or corrupt jarfile」エラーが発生
+
+##### Comment Length 手法の原理
+
+この手法では、ZIP形式の **Comment Length** フィールドを活用して署名データを適切に処理します：
+
+```
+ZIP End of Central Directory (EOCD) 構造:
+┌─────────────────────────────────────┐
+│ 00-03: 50 4B 05 06  (シグネチャ)     │
+│ 04-05: Number of this disk          │
+│ 06-07: Disk where central dir starts│
+│ 08-09: Number of central dir records│
+│ 10-11: Total central dir records    │
+│ 12-15: Size of central directory    │
+│ 16-19: Offset of central directory  │
+│ 20-21: Comment length ← ここを変更  │
+│ 22-xx: Comment data                │
+└─────────────────────────────────────┘
+```
+
+**処理フロー:**
+
+1. **署名サイズ測定**: 一時ファイルで署名後のサイズ増加を計算
+2. **EOCD検出**: ZIP End of Central Directory の位置を特定
+3. **Comment Length更新**: 署名データサイズをComment Lengthに設定
+4. **最終署名**: 修正されたファイルに署名を適用
+
+**メリット:**
+
+- ✅ **JAR構造保護**: Central Directoryの位置・サイズ情報は変更せず
+- ✅ **単体配布**: JAR内包型EXEとして配布可能
+- ✅ **完全互換性**: 標準的なZIP/JAR形式との互換性を維持
+- ✅ **自動化**: 手動操作不要の完全自動化
+
+**制限事項:**
+
+- Comment Lengthは2バイト（最大65535バイト）の制限があります
+- 署名サイズが65535バイトを超える場合は標準署名にフォールバック
 
 ### 証明書管理
 

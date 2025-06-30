@@ -162,9 +162,7 @@ subjectKeyIdentifier = hash
 } catch {
     Write-Host "`nエラー: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "証明書の作成に失敗しました。" -ForegroundColor Red
-    Read-Host "続行するには何かキーを押してください"
     exit 1
 }
 
 Write-Host "`n証明書作成スクリプトが正常に完了しました！" -ForegroundColor Green
-Read-Host "続行するには何かキーを押してください"

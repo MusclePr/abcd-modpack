@@ -62,7 +62,6 @@ function Start-ElevatedProcess {
         Write-Host "エラー: 管理者権限での起動に失敗しました。" -ForegroundColor Red
         Write-Host "手動でPowerShellを管理者として実行してから、再度このスクリプトを実行してください。" -ForegroundColor Yellow
         Write-Host "詳細: $($_.Exception.Message)" -ForegroundColor Gray
-        Read-Host "続行するには何かキーを押してください"
         exit 1
     }
 }

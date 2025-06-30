@@ -125,4 +125,4 @@ if (Test-Path "icon.ico") {
 
 Write-Host "`n次のステップ:"
 Write-Host "  1. EXEファイルをテスト: .\target\abcd-modpack-updater.exe" -ForegroundColor White
-Write-Host "  2. コード署名を追加: .\sign-exe.ps1 -CertThumbprint <証明書の拇印>" -ForegroundColor White
+Write-Host "  2. コード署名を追加: .\sign-exe-advanced.ps1" -ForegroundColor White

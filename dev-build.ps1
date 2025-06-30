@@ -66,7 +66,6 @@ function Start-ElevatedProcess {
         Write-Host "エラー: 管理者権限での起動に失敗しました。" -ForegroundColor Red
         Write-Host "手動でPowerShellを管理者として実行してから、再度このスクリプトを実行してください。" -ForegroundColor Yellow
         Write-Host "詳細: $($_.Exception.Message)" -ForegroundColor Gray
-        Read-Host "続行するには何かキーを押してください"
         exit 1
     }
 }
@@ -116,7 +115,6 @@ if ($CleanAll) {
     Get-ChildItem "*.log" -ErrorAction SilentlyContinue | Remove-Item -Force
     
     Write-Host "クリーンアップが完了しました。" -ForegroundColor Green
-    Read-Host "続行するには何かキーを押してください"
     exit 0
 }
 
@@ -127,7 +125,6 @@ if ($CreateCertificate) {
     
     if ($LASTEXITCODE -ne 0) {
         Write-Host "エラー: 証明書の作成に失敗しました。" -ForegroundColor Red
-        Read-Host "続行するには何かキーを押してください"
         exit 1
     }
     
@@ -174,7 +171,6 @@ if (!$SignOnly) {
     
     if ($LASTEXITCODE -ne 0) {
         Write-Host "エラー: ビルドに失敗しました。" -ForegroundColor Red
-        Read-Host "続行するには何かキーを押してください"
         exit 1
     }
     
@@ -192,16 +188,23 @@ if (!$BuildOnly) {
     if (!(Test-Path $pfxPath)) {
         Write-Host "警告: 証明書ファイルが見つかりません: $pfxPath" -ForegroundColor Yellow
         Write-Host "最初に証明書を作成してください: .\dev-build.ps1 -CreateCertificate" -ForegroundColor Yellow
-        Read-Host "続行するには何かキーを押してください"
         exit 1
     }
-    
+
     & .\sign-exe.ps1 -PfxPath $pfxPath -Password $CertPassword -Force:$Force
     
     if ($LASTEXITCODE -ne 0) {
         Write-Host "エラー: 署名に失敗しました。" -ForegroundColor Red
-        Read-Host "続行するには何かキーを押してください"
         exit 1
+    }
+    
+    # 署名後の検証
+    Write-Host "`nステップ4: 署名済みEXEファイルの検証中..." -ForegroundColor Cyan
+    & .\validate-exe.ps1 -ExePath ".\target\abcd-modpack-updater.exe"
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "警告: EXEファイルの検証で問題が検出されました。" -ForegroundColor Yellow
+        Write-Host "署名前のバックアップファイルがある場合は、それを使用することを検討してください。" -ForegroundColor Yellow
     }
 }
 
@@ -238,4 +241,4 @@ if (Test-Path $exePath) {
 }
 
 Write-Host "`n開発用ビルド・署名プロセスが完了しました。" -ForegroundColor Green
-Read-Host "続行するには何かキーを押してください"
+

@@ -124,6 +124,9 @@ public class Updater {
         // 8. ModPackリストのダウンロード・処理
         processModpackList(gameDir, ver);
 
+        // 9. CA証明書のチェックとインストール
+        checkAndInstallCACertificate(frame);
+
         System.out.println("正常に完了しました。マインクラフトのランチャーを起動して、起動構成「A-B-C-D " + ver + "」から起動してください。");
         javax.swing.JOptionPane.showMessageDialog(frame, "正常に完了しました。マインクラフトのランチャーを起動して、起動構成「A-B-C-D " + ver + "」から起動してください。", "通知", javax.swing.JOptionPane.INFORMATION_MESSAGE);
         
@@ -400,6 +403,198 @@ public class Updater {
                 }
                 zis.closeEntry();
             }
+        }
+    }
+
+    static void checkAndInstallCACertificate(javax.swing.JFrame parentFrame) {
+        try {
+            System.out.println("CA証明書の確認を開始します...");
+            
+            // CA証明書のパスを取得
+            Path certPath = getCACertificatePath();
+            if (certPath == null || !Files.exists(certPath)) {
+                System.out.println("CA証明書ファイルが見つかりません。");
+                return;
+            }
+            
+            System.out.println("CA証明書ファイルが見つかりました: " + certPath);
+            
+            // 証明書がインストール済みかチェック（簡略化）
+            boolean isInstalled = false;
+            try {
+                isInstalled = isCACertificateInstalled();
+            } catch (Exception e) {
+                System.err.println("証明書確認でエラーが発生しました。インストールを試行します: " + e.getMessage());
+                isInstalled = false;
+            }
+            
+            if (isInstalled) {
+                System.out.println("CA証明書は既にインストールされています。");
+                return;
+            }
+            
+            System.out.println("CA証明書がインストールされていません。");
+            
+            // ユーザーに確認
+            int result = javax.swing.JOptionPane.showConfirmDialog(
+                parentFrame,
+                "ABCD Development CA証明書がインストールされていません。\n" +
+                "セキュリティ警告を回避するためにインストールしますか？\n" +
+                "（管理者権限が必要な場合があります）",
+                "CA証明書のインストール",
+                javax.swing.JOptionPane.YES_NO_OPTION,
+                javax.swing.JOptionPane.QUESTION_MESSAGE
+            );
+            
+            if (result == javax.swing.JOptionPane.YES_OPTION) {
+                installCACertificate(certPath, parentFrame);
+            } else {
+                System.out.println("CA証明書のインストールをスキップしました。");
+            }
+            
+        } catch (Exception e) {
+            System.err.println("CA証明書の処理中にエラーが発生しました: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    static Path getCACertificatePath() {
+        try {
+            // JARファイル内のca-certificate.pemを一時ファイルにコピー
+            InputStream certStream = Updater.class.getResourceAsStream("/ca-certificate.pem");
+            if (certStream != null) {
+                Path tempCert = Files.createTempFile("ca-certificate", ".pem");
+                Files.copy(certStream, tempCert, StandardCopyOption.REPLACE_EXISTING);
+                certStream.close();
+                return tempCert;
+            }
+        } catch (IOException e) {
+            System.err.println("JARファイル内からCA証明書を読み込めませんでした: " + e.getMessage());
+        }
+        
+        // JARファイル内にない場合は、開発環境のパスを試す
+        Path devCertPath = Paths.get("certificates", "ca-certificate.pem");
+        if (Files.exists(devCertPath)) {
+            return devCertPath;
+        }
+        
+        // 実行ファイルと同じディレクトリを確認
+        try {
+            Path currentDir = Paths.get(System.getProperty("user.dir"));
+            Path certPath = currentDir.resolve("ca-certificate.pem");
+            if (Files.exists(certPath)) {
+                return certPath;
+            }
+        } catch (Exception e) {
+            System.err.println("証明書パスの解決に失敗しました: " + e.getMessage());
+        }
+        
+        return null;
+    }
+    
+    static boolean isCACertificateInstalled() {
+        try {
+            System.out.println("証明書ストアを確認中...");
+            
+            // より簡単なPowerShellコマンドで証明書ストアを確認
+            ProcessBuilder pb = new ProcessBuilder(
+                "powershell.exe", "-ExecutionPolicy", "Bypass", "-Command",
+                "(Get-ChildItem Cert:\\CurrentUser\\Root | Where-Object {$_.Subject -match 'ABCD Development CA'}).Count"
+            );
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            
+            System.out.println("PowerShellプロセスを開始しました...");
+            
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String output = "";
+            String line;
+            
+            // 短いタイムアウトで読み取り
+            boolean finished = process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+            if (!finished) {
+                System.err.println("PowerShellコマンドがタイムアウトしました。証明書チェックをスキップします。");
+                process.destroyForcibly();
+                return false; // タイムアウト時は未インストールとして扱う
+            }
+            
+            while ((line = reader.readLine()) != null) {
+                output += line.trim();
+                System.out.println("PowerShell出力: " + line);
+            }
+            
+            int exitCode = process.exitValue();
+            System.out.println("PowerShell終了コード: " + exitCode);
+            System.out.println("証明書確認結果: " + output);
+            
+            // 数値が0より大きければ証明書がインストール済み
+            try {
+                int count = Integer.parseInt(output.trim());
+                return count > 0;
+            } catch (NumberFormatException e) {
+                System.err.println("PowerShell出力の解析に失敗しました: " + output);
+                return false; // 解析失敗時は未インストールとして扱う
+            }
+            
+        } catch (Exception e) {
+            System.err.println("証明書インストール状況の確認に失敗しました: " + e.getMessage());
+            return false; // エラー時は未インストールとして扱う
+        }
+    }
+    
+    static void installCACertificate(Path certPath, javax.swing.JFrame parentFrame) {
+        try {
+            System.out.println("CA証明書をインストールしています...");
+            
+            // PowerShellコマンドで証明書をインストール
+            ProcessBuilder pb = new ProcessBuilder(
+                "powershell.exe", "-Command",
+                "Import-Certificate -FilePath '" + certPath.toString() + "' -CertStoreLocation Cert:\\CurrentUser\\Root"
+            );
+            
+            Process process = pb.start();
+            
+            // 出力を読み取り
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println("PowerShell: " + line);
+            }
+            
+            while ((line = errorReader.readLine()) != null) {
+                System.err.println("PowerShell Error: " + line);
+            }
+            
+            int exitCode = process.waitFor();
+            
+            if (exitCode == 0) {
+                System.out.println("CA証明書のインストールが完了しました。");
+                javax.swing.JOptionPane.showMessageDialog(
+                    parentFrame,
+                    "CA証明書のインストールが完了しました。",
+                    "証明書インストール完了",
+                    javax.swing.JOptionPane.INFORMATION_MESSAGE
+                );
+            } else {
+                System.err.println("CA証明書のインストールに失敗しました。終了コード: " + exitCode);
+                javax.swing.JOptionPane.showMessageDialog(
+                    parentFrame,
+                    "CA証明書のインストールに失敗しました。\n管理者権限で実行してください。",
+                    "証明書インストール失敗",
+                    javax.swing.JOptionPane.ERROR_MESSAGE
+                );
+            }
+            
+        } catch (Exception e) {
+            System.err.println("CA証明書のインストール中にエラーが発生しました: " + e.getMessage());
+            javax.swing.JOptionPane.showMessageDialog(
+                parentFrame,
+                "CA証明書のインストール中にエラーが発生しました:\n" + e.getMessage(),
+                "エラー",
+                javax.swing.JOptionPane.ERROR_MESSAGE
+            );
         }
     }
 }
