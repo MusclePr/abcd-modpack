@@ -23,6 +23,21 @@
 hs_err_pid*
 replay_pid*
 
+# Certificate files and private keys (DO NOT COMMIT TO PRODUCTION)
+certificates/
+*.pfx
+*.p12
+*.key
+*.pem
+*.crt
+*.cer
+
+# Environment files with sensitive information
+.env
+.env.local
+.env.production
+.env.staging
+
 # Maven
 target/
 pom.xml.tag

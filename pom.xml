@@ -6,7 +6,7 @@
     <artifactId>abcd-modpack</artifactId>
     <version>1.0</version>
     <name>ABCD Minecraft Modpack Updater</name>
-    <description>A-B-C-D Minecraft Modpack の自動アップデートツール</description>
+    <description>A-B-C-D Minecraft Modpack Updater</description>
     <inceptionYear>2025</inceptionYear>
     <organization>
         <name>A-B-C-D</name>
@@ -55,6 +55,7 @@
                             <jar>${project.build.directory}/${project.artifactId}-${project.version}.jar</jar>
                             <outfile>${project.build.directory}/${project.artifactId}-updater.exe</outfile>
                             <downloadUrl>https://adoptium.net/temurin/releases/</downloadUrl>
+                            <icon>src/main/resources/icon.ico</icon>
                             <classPath>
                                 <mainClass>com.abcd.modpack.Updater</mainClass>
                             </classPath>

@@ -22,6 +22,23 @@ Minecraft の modpack を自動的にダウンロード・インストール・�
 ### 前提条件
 - Maven 3.6 以上
 - Java Development Kit (JDK) 11 以上
+- Launch4j (EXE作成時)
+- OpenSSL (テスト用証明書作成時)
+
+### 開発・テスト用ビルド（推奨）
+
+統合スクリプトを使用して、証明書作成からEXE署名まで一括で実行できます：
+
+```powershell
+# 初回セットアップ（証明書作成 + ビルド + 署名）
+.\dev-build.ps1
+
+# 個別実行
+.\dev-build.ps1 -CreateCertificate    # テスト用証明書作成
+.\dev-build.ps1 -BuildOnly            # ビルドのみ
+.\dev-build.ps1 -SignOnly             # 署名のみ
+.\dev-build.ps1 -CleanAll             # 全てクリーンアップ
+```
 
 ### コマンドライン
 
@@ -30,8 +47,81 @@ Minecraft の modpack を自動的にダウンロード・インストール・�
 git clone https://github.com/MusclePr/abcd-modpack.git
 cd abcd-modpack
 
+# 従来のビルド方法
 .\build-exe.ps1
 ```
+
+## コードサイニング（開発・テスト用）
+
+このプロジェクトには、テスト・開発用の自己認証局（CA）によるコードサイニング機能が含まれています。
+
+### 環境設定
+
+証明書のパスワードは`.env`ファイルで管理します。プロジェクトルートに`.env`ファイルを作成してください：
+
+```bash
+# .env ファイル
+PASSWORD="Cx!3.-a8K/Vw"
+```
+
+**注意**: `.env`ファイルは`.gitignore`に含まれており、Gitリポジトリにはコミットされません。
+
+### 自己認証局とコードサイニング証明書の作成
+
+```powershell
+# テスト用証明書を作成（.envファイルからパスワードを自動読み込み）
+.\create-test-certificate.ps1
+```
+
+このスクリプトは以下を作成します：
+- CA（認証局）の秘密鍵と証明書
+- コードサイニング用の秘密鍵と証明書
+- PKCS#12形式の証明書ファイル (.pfx)
+
+作成されるファイル：
+```
+certificates/
+├── ca-certificate.pem                # CA証明書
+├── ca-private-key.pem                # CA秘密鍵
+├── code-signing-certificate.pem      # コードサイニング証明書
+├── code-signing-private-key.pem      # コードサイニング秘密鍵
+└── code-signing-certificate.pfx      # 署名用PFXファイル
+```
+
+### EXEファイルへの署名
+
+```powershell
+# PFXファイルを使用して署名（.envファイルからパスワードを自動読み込み）
+.\sign-exe.ps1
+
+# 明示的にPFXファイルとパスワードを指定
+.\sign-exe.ps1 -PfxPath ".\certificates\code-signing-certificate.pfx" -Password "カスタムパスワード"
+
+# 証明書ストアの証明書を使用して署名
+.\sign-exe.ps1 -CertThumbprint "証明書の拇印"
+```
+
+### 証明書管理
+
+```powershell
+# 証明書の確認・管理
+.\certificate-manager.ps1 -ListCertificates    # 証明書一覧
+.\certificate-manager.ps1 -ShowDetails         # 詳細表示
+.\certificate-manager.ps1 -VerifySignature     # 署名確認
+
+# CA証明書をルート証明書ストアにインストール（管理者権限必要）
+.\certificate-manager.ps1 -InstallCA
+
+# CA証明書をルート証明書ストアから削除（管理者権限必要）
+.\certificate-manager.ps1 -UninstallCA
+```
+
+### 注意事項
+
+- **開発・テスト専用**: 作成される証明書は自己署名証明書であり、本番環境では使用しないでください
+- **セキュリティ**: パスワードは`.env`ファイルで管理されます。このファイルは絶対にリポジトリにコミットしないでください
+- **信頼性**: 自己署名証明書で署名されたファイルは、CA証明書をルート証明書ストアにインストールするまで「信頼されていない」として扱われます
+- **商用証明書**: 本番環境では、DigiCert、Symantec、Comodo等の商用証明書を使用してください
 
 ### VS Code Tasks
 
@@ -47,11 +137,11 @@ cd abcd-modpack
 Launch4j を使用して Windows 実行ファイルを作成できます：
 
 ```powershell
-# EXEファイルをビルド
+# EXE作成（従来の方法）
 .\build-exe.ps1
 
-# 作成されたEXEを実行
-.\target\abcd-modpack-updater.exe
+# 署名付きEXE作成（推奨）
+.\dev-build.ps1
 ```
 
 ## 使用方法
@@ -87,11 +177,17 @@ abcd-modpack/
 │       │       └── Updater.java          # メインクラス
 │       └── resources/
 │           └── icon.ico                  # アプリケーションアイコン
+├── certificates/                         # 証明書ディレクトリ（自動生成）
 ├── target/                               # ビルド出力ディレクトリ
+├── .env                                  # 環境変数ファイル（要作成）
+├── env-helper.ps1                       # 環境変数読み込みヘルパー
 ├── pom.xml                              # Maven設定ファイル
 ├── launch4j-config.xml                  # Launch4j設定ファイル
 ├── build-exe.ps1                       # EXE作成スクリプト
 ├── sign-exe.ps1                        # EXE署名スクリプト
+├── create-test-certificate.ps1         # テスト証明書作成スクリプト
+├── dev-build.ps1                       # 統合ビルド・署名スクリプト
+├── certificate-manager.ps1             # 証明書管理スクリプト
 └── abcd-modpack.ps1                     # 実行スクリプト
 ```
 
