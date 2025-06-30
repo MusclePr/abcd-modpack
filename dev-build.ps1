@@ -118,6 +118,46 @@ if ($CleanAll) {
     exit 0
 }
 
+# CA証明書の確認と準備処理
+Write-Host "`nステップ0: CA証明書の確認と準備..." -ForegroundColor Cyan
+
+$caCertSourcePath = "certificates/ca-certificate.pem"
+$caCertTargetPath = "src/main/resources/ca-certificate.pem"
+
+if (Test-Path $caCertSourcePath) {
+    Write-Host "✓ CA証明書ファイルが見つかりました: $caCertSourcePath" -ForegroundColor Green
+    
+    # ソースとターゲットのファイル比較
+    if (Test-Path $caCertTargetPath) {
+        $sourceHash = (Get-FileHash $caCertSourcePath -Algorithm MD5).Hash
+        $targetHash = (Get-FileHash $caCertTargetPath -Algorithm MD5).Hash
+        
+        if ($sourceHash -eq $targetHash) {
+            Write-Host "✓ CA証明書は既に最新です" -ForegroundColor Green
+        } else {
+            Write-Host "CA証明書が古いバージョンです。更新しています..." -ForegroundColor Yellow
+            Copy-Item $caCertSourcePath $caCertTargetPath -Force
+            Write-Host "✓ CA証明書を更新しました: $caCertTargetPath" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "CA証明書がresourcesディレクトリにありません。コピーしています..." -ForegroundColor Yellow
+        # resourcesディレクトリが存在しない場合は作成
+        $resourcesDir = Split-Path $caCertTargetPath -Parent
+        if (!(Test-Path $resourcesDir)) {
+            New-Item -ItemType Directory -Path $resourcesDir -Force | Out-Null
+            Write-Host "✓ resourcesディレクトリを作成しました: $resourcesDir" -ForegroundColor Green
+        }
+        Copy-Item $caCertSourcePath $caCertTargetPath -Force
+        Write-Host "✓ CA証明書をコピーしました: $caCertTargetPath" -ForegroundColor Green
+    }
+} else {
+    Write-Host "警告: CA証明書が見つかりません: $caCertSourcePath" -ForegroundColor Yellow
+    if (-not $CreateCertificate) {
+        Write-Host "証明書が見つからないため、証明書作成フラグを有効にします..." -ForegroundColor Yellow
+        $CreateCertificate = $true
+    }
+}
+
 # 証明書作成処理
 if ($CreateCertificate) {
     Write-Host "`nステップ1: テスト用証明書を作成中..." -ForegroundColor Cyan
@@ -126,6 +166,19 @@ if ($CreateCertificate) {
     if ($LASTEXITCODE -ne 0) {
         Write-Host "エラー: 証明書の作成に失敗しました。" -ForegroundColor Red
         exit 1
+    }
+    
+    # 新しく作成されたCA証明書をリソースにコピー
+    Write-Host "新しく作成されたCA証明書をリソースディレクトリにコピー中..." -ForegroundColor Gray
+    if (Test-Path $caCertSourcePath) {
+        # resourcesディレクトリが存在しない場合は作成
+        $resourcesDir = Split-Path $caCertTargetPath -Parent
+        if (!(Test-Path $resourcesDir)) {
+            New-Item -ItemType Directory -Path $resourcesDir -Force | Out-Null
+            Write-Host "✓ resourcesディレクトリを作成しました: $resourcesDir" -ForegroundColor Green
+        }
+        Copy-Item $caCertSourcePath $caCertTargetPath -Force
+        Write-Host "✓ 新しいCA証明書をリソースにコピーしました: $caCertTargetPath" -ForegroundColor Green
     }
     
     if ($InstallCA) {

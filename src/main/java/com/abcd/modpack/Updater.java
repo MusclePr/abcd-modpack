@@ -47,6 +47,14 @@ public class Updater {
         System.setErr(console);
         frame.setVisible(true);
 
+        // --uninstall-caオプションが指定された場合、CA証明書のアンインストールを実行
+        if (args.length > 0 && args[0].equals("--uninstall-ca")) {
+            uninstallCACertificate(frame);
+            // コンソールウィンドウを閉じる
+            frame.dispose();
+            return;
+        }
+
         // 1. バージョンアップが必要かどうかの確認
         String version = "0.0-SNAPSHOT"; // デフォルト値
         try {
@@ -499,7 +507,7 @@ public class Updater {
             // より簡単なPowerShellコマンドで証明書ストアを確認
             ProcessBuilder pb = new ProcessBuilder(
                 "powershell.exe", "-ExecutionPolicy", "Bypass", "-Command",
-                "(Get-ChildItem Cert:\\CurrentUser\\Root | Where-Object {$_.Subject -match 'ABCD Development CA'}).Count"
+                "(Get-ChildItem Cert:\\LocalMachine\\Root | Where-Object {$_.Subject -match 'ABCD Development CA'}).Count"
             );
             pb.redirectErrorStream(true);
             Process process = pb.start();
@@ -541,7 +549,63 @@ public class Updater {
             return false; // エラー時は未インストールとして扱う
         }
     }
-    
+
+    static void uninstallCACertificate(javax.swing.JFrame parentFrame) {
+        try {
+            System.out.println("CA証明書をアンインストールしています...");
+            
+            // PowerShellコマンドで証明書をアンインストール
+            ProcessBuilder pb = new ProcessBuilder(
+                "powershell.exe", "-Command",
+                "Get-ChildItem Cert:\\LocalMachine\\Root | Where-Object {$_.Subject -match 'ABCD Development CA'} | Remove-Item"
+            );
+            
+            Process process = pb.start();
+            
+            // 出力を読み取り
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println("PowerShell: " + line);
+            }
+            
+            while ((line = errorReader.readLine()) != null) {
+                System.err.println("PowerShell Error: " + line);
+            }
+            
+            int exitCode = process.waitFor();
+            
+            if (exitCode == 0) {
+                System.out.println("CA証明書のアンインストールが完了しました。");
+                javax.swing.JOptionPane.showMessageDialog(
+                    parentFrame,
+                    "CA証明書のアンインストールが完了しました。",
+                    "証明書アンインストール完了",
+                    javax.swing.JOptionPane.INFORMATION_MESSAGE
+                );
+            } else {
+                System.err.println("CA証明書のアンインストールに失敗しました。終了コード: " + exitCode);
+                javax.swing.JOptionPane.showMessageDialog(
+                    parentFrame,
+                    "CA証明書のアンインストールに失敗しました。\n管理者権限で実行してください。",
+                    "証明書アンインストール失敗",
+                    javax.swing.JOptionPane.ERROR_MESSAGE
+                );
+            }
+            
+        } catch (Exception e) {
+            System.err.println("CA証明書のアンインストール中にエラーが発生しました: " + e.getMessage());
+            javax.swing.JOptionPane.showMessageDialog(
+                parentFrame,
+                "CA証明書のアンインストール中にエラーが発生しました:\n" + e.getMessage(),
+                "エラー",
+                javax.swing.JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
     static void installCACertificate(Path certPath, javax.swing.JFrame parentFrame) {
         try {
             System.out.println("CA証明書をインストールしています...");
@@ -549,7 +613,7 @@ public class Updater {
             // PowerShellコマンドで証明書をインストール
             ProcessBuilder pb = new ProcessBuilder(
                 "powershell.exe", "-Command",
-                "Import-Certificate -FilePath '" + certPath.toString() + "' -CertStoreLocation Cert:\\CurrentUser\\Root"
+                "Import-Certificate -FilePath '" + certPath.toString() + "' -CertStoreLocation Cert:\\LocalMachine\\Root"
             );
             
             Process process = pb.start();

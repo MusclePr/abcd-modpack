@@ -40,6 +40,16 @@ Minecraft の modpack を自動的にダウンロード・インストール・�
 .\dev-build.ps1 -CleanAll             # 全てクリーンアップ
 ```
 
+**重要: CA証明書の自動更新**
+
+ビルドスクリプト（`build-exe.ps1` および `dev-build.ps1`）は、実行時に自動的に以下の処理を行います：
+- `certificates/ca-certificate.pem` の存在確認
+- `src/main/resources/ca-certificate.pem` との比較（MD5ハッシュ）
+- 古いまたは存在しない場合の自動更新
+- リソースディレクトリの自動作成
+
+これにより、JAR内に常に最新のCA証明書が含まれることが保証されます。
+
 ### コマンドライン
 
 ```powershell
@@ -202,6 +212,8 @@ Launch4j を使用して Windows 実行ファイルを作成できます：
 
 ## 使用方法
 
+### 基本的な使用方法
+
 1. **アプリケーションを起動**
    - JAR ファイルまたは EXE ファイルを実行します
 
@@ -221,6 +233,29 @@ Launch4j を使用して Windows 実行ファイルを作成できます：
 
 5. **完了**
    - Minecraft ランチャーで「A-B-C-D」プロファイルから起動
+
+### コマンドライン引数
+
+アプリケーションは以下のコマンドライン引数をサポートしています：
+
+```powershell
+# バージョン情報を表示
+.\target\abcd-modpack-updater.exe --version
+java -jar target\abcd-modpack-1.0.jar --version
+
+# CA証明書をアンインストール
+.\target\abcd-modpack-updater.exe --uninstall-ca
+java -jar target\abcd-modpack-1.0.jar --uninstall-ca
+
+# ヘルプを表示
+.\target\abcd-modpack-updater.exe --help
+java -jar target\abcd-modpack-1.0.jar --help
+```
+
+**特徴：**
+- すべてのコマンドライン引数はGUIウィンドウ内に出力を表示
+- 処理完了後は「閉じる」ボタンでウィンドウを終了
+- 別のコンソールウィンドウは開かない
 
 ## プロジェクト構造
 

@@ -4,7 +4,62 @@
 Write-Host "A-B-C-D Modpack EXE ビルダー" -ForegroundColor Green
 Write-Host "========================"
 
-Write-Host "`nステップ1: JAR のクリーンビルド..." -ForegroundColor Yellow
+Write-Host "`nステップ1: CA証明書の確認と更新..." -ForegroundColor Yellow
+
+# CA証明書ファイルの確認と更新処理
+$caCertSourcePath = "certificates/ca-certificate.pem"
+$caCertTargetPath = "src/main/resources/ca-certificate.pem"
+
+if (Test-Path $caCertSourcePath) {
+    Write-Host "✓ CA証明書ファイルが見つかりました: $caCertSourcePath" -ForegroundColor Green
+    
+    # ソースとターゲットのファイル比較
+    if (Test-Path $caCertTargetPath) {
+        $sourceHash = (Get-FileHash $caCertSourcePath -Algorithm MD5).Hash
+        $targetHash = (Get-FileHash $caCertTargetPath -Algorithm MD5).Hash
+        
+        if ($sourceHash -eq $targetHash) {
+            Write-Host "✓ CA証明書は既に最新です" -ForegroundColor Green
+        } else {
+            Write-Host "CA証明書が古いバージョンです。更新しています..." -ForegroundColor Yellow
+            Copy-Item $caCertSourcePath $caCertTargetPath -Force
+            Write-Host "✓ CA証明書を更新しました: $caCertTargetPath" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "CA証明書がresourcesディレクトリにありません。コピーしています..." -ForegroundColor Yellow
+        # resourcesディレクトリが存在しない場合は作成
+        $resourcesDir = Split-Path $caCertTargetPath -Parent
+        if (!(Test-Path $resourcesDir)) {
+            New-Item -ItemType Directory -Path $resourcesDir -Force | Out-Null
+            Write-Host "✓ resourcesディレクトリを作成しました: $resourcesDir" -ForegroundColor Green
+        }
+        Copy-Item $caCertSourcePath $caCertTargetPath -Force
+        Write-Host "✓ CA証明書をコピーしました: $caCertTargetPath" -ForegroundColor Green
+    }
+    
+    # 証明書の基本情報を表示
+    try {
+        $certContent = Get-Content $caCertSourcePath -Raw
+        if ($certContent -match "-----BEGIN CERTIFICATE-----") {
+            Write-Host "✓ CA証明書のPEM形式が確認されました" -ForegroundColor Green
+            
+            # 証明書の有効期限をチェック（簡易的）
+            if ($certContent -match "Not After\s*:\s*(.+)" -or $certContent -match "notAfter=(.+)") {
+                Write-Host "CA証明書の確認が完了しました" -ForegroundColor Gray
+            }
+        } else {
+            Write-Host "警告: CA証明書のPEM形式が正しくない可能性があります" -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "警告: CA証明書の読み取りエラー: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "警告: CA証明書が見つかりません: $caCertSourcePath" -ForegroundColor Yellow
+    Write-Host "CA証明書を作成する場合は以下のコマンドを実行してください:" -ForegroundColor Gray
+    Write-Host "  .\create-test-certificate.ps1" -ForegroundColor Cyan
+}
+
+Write-Host "`nステップ2: JAR のクリーンビルド..." -ForegroundColor Yellow
 & mvn clean package
 
 if ($LASTEXITCODE -ne 0) {
@@ -13,7 +68,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Host "`nステップ2: Launch4j でEXE作成中..." -ForegroundColor Yellow
+Write-Host "`nステップ3: Launch4j でEXE作成中..." -ForegroundColor Yellow
 
 # Launch4jの設定ファイルが存在するかチェック
 if (!(Test-Path "launch4j-config.xml")) {
