@@ -275,11 +275,11 @@ abcd-modpack/
 ├── pom.xml                              # Maven設定ファイル
 ├── launch4j-config.xml                  # Launch4j設定ファイル
 ├── build-exe.ps1                       # EXE作成スクリプト
-├── sign-exe.ps1                        # EXE署名スクリプト
+├── sign-exe-advanced.ps1               # EXE署名スクリプト
 ├── create-test-certificate.ps1         # テスト証明書作成スクリプト
 ├── dev-build.ps1                       # 統合ビルド・署名スクリプト
 ├── certificate-manager.ps1             # 証明書管理スクリプト
-└── abcd-modpack.ps1                     # 実行スクリプト
+└── abcd-modpack.ps1                     # 旧実行スクリプト
 ```
 
 ## 設定ファイル

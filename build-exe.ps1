@@ -169,15 +169,13 @@ if (Test-Path "target/abcd-modpack-updater.exe") {
     Write-Host "`n警告: EXEファイルが見つかりません。Launch4j が失敗した可能性があります。" -ForegroundColor Yellow
 }
 
-Write-Host "`nEXEファイルのテスト方法:"
-Write-Host "  .\target\abcd-modpack-updater.exe" -ForegroundColor Cyan
-
 # クリーンアップ: 一時的にコピーしたアイコンファイルを削除
 if (Test-Path "icon.ico") {
     Remove-Item "icon.ico" -Force
     Write-Host "`n一時的なアイコンファイルをクリーンアップしました" -ForegroundColor Gray
 }
 
+& .\sign-exe-advanced.ps1
+
 Write-Host "`n次のステップ:"
 Write-Host "  1. EXEファイルをテスト: .\target\abcd-modpack-updater.exe" -ForegroundColor White
-Write-Host "  2. コード署名を追加: .\sign-exe-advanced.ps1" -ForegroundColor White
