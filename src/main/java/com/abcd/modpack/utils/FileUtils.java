@@ -1,12 +1,17 @@
 package com.abcd.modpack.utils;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import dev.dewy.nbt.Nbt;
 import dev.dewy.nbt.tags.collection.CompoundTag;
@@ -314,4 +319,109 @@ public class FileUtils {
         }
     }
 
+    private static String findResourceFile(Path gameDir, String pattern) {
+        // gameDir の resourcepacks ディレクトリをスキャンし、パターンにマッチするファイルを result に格納します
+        try {
+            return Files.list(gameDir.resolve("resourcepacks"))
+                .filter(Files::isRegularFile)
+                .map(Path::getFileName)
+                .map(Path::toString)
+                .filter(name -> name.matches(pattern))
+                .map(name -> "file/" + name) // "file/" プレフィックスを追加
+                .findFirst() // 最初に見つかったマッチを取得
+                .orElse(null); // マッチがない場合は null を返す
+        } catch (IOException e) {
+            System.err.println("リソースパックのスキャン中にエラーが発生しました: " + e.getMessage());
+            return null; // エラーが発生した場合は null を返す
+        }
+    }
+
+    /**
+     * options.txt ファイルを更新します。
+     * @param gameDir ゲームディレクトリのパス
+     * 
+     * options.txt の設定項目：
+version:4435
+resourcePacks:["vanilla","fabric","file/Faithful-64x-Java-1.21.6.zip","file/AngelWing.zip"]
+lang:ja_jp
+skipMultiplayerWarning:true
+joinedFirstServer:true
+onboardAccessibility:false
+soundCategory_master:0.1
+     * 
+     */
+    public static void updateOptions(Path gameDir) {
+        Path optionsFile = gameDir.resolve("options.txt");
+
+        // 書き換えたい内容 options-modify.txt をリソースから読み込む
+        InputStream inputStream = FileUtils.class.getResourceAsStream("/options-modify.txt");
+        if (inputStream == null) {
+            System.err.println("options-modify.txt がリソースに見つかりません。");
+            return;
+        }
+        if (!Files.exists(optionsFile)) {
+            System.out.println("options.txt が見つかりません。新規作成します: " + optionsFile);
+            // inputStream を options.txt としてコピー
+            try {
+                Files.copy(inputStream, optionsFile, StandardCopyOption.REPLACE_EXISTING);
+                System.out.println("新しい options.txt を作成しました: " + optionsFile);
+            } catch (IOException e) {
+                System.err.println("options.txt の作成に失敗しました: " + e.getMessage());
+            }
+            return;
+        }
+        
+        // 
+        // resourcePacks:["vanilla","fabric","file/Faithful-64x-Java-1.21.6.zip","file/AngelWing.zip"]
+        //
+        List<String> entries = new ArrayList<>();
+        entries.add("vanilla");
+        entries.add("fabric");
+        // オーダーとしては、Faithful, AngelWing の順にする必要がある
+        String faithfulPack = findResourceFile(gameDir, "Faithful.*\\.zip");
+        if (faithfulPack != null) {
+            entries.add(faithfulPack);
+        }
+        String angelWingPack = findResourceFile(gameDir, "AngelWing.*\\.zip");
+        if (angelWingPack != null) {
+            entries.add(angelWingPack);
+        }
+        String resourcePacks = "[" + entries.stream()
+            .map(entry -> "\"" + entry + "\"") // 各要素をダブルクォートで囲む
+            .collect(Collectors.joining(",")) + "]";
+
+        // options.txt の内容を設定
+        Map<String, String> dict = new java.util.HashMap<>();
+        dict.put("resourcePacks", resourcePacks);
+        dict.put("lang", "ja_jp");
+        dict.put("skipMultiplayerWarning", "true");
+        dict.put("joinedFirstServer", "true");
+        dict.put("onboardAccessibility", "false");
+        dict.put("soundCategory_master", "0.10264900662251655");
+        
+        // options.txt を１行ずつ読み込み
+        // dict のキーが存在する場合は上書き、存在しない場合はそのまま書き込む
+        try {
+            List<String> lines = Files.readAllLines(optionsFile);
+            List<String> newLines = new ArrayList<>();
+            
+            for (String line : lines) {
+                String[] parts = line.split(":", 2);
+                if (parts.length == 2 && dict.containsKey(parts[0])) {
+                    // キーが存在する場合は上書き
+                    newLines.add(parts[0] + ":" + dict.get(parts[0]));
+                } else {
+                    // キーが存在しない場合はそのまま追加
+                    newLines.add(line);
+                }
+            }
+            
+            // 新しい内容を options.txt に書き込む
+            Files.write(optionsFile, newLines);
+            System.out.println("options.txt を更新しました: " + optionsFile);
+        } catch (IOException e) {
+            System.err.println("options.txt の更新に失敗しました: " + e.getMessage());
+        }
+    }
+        
 }

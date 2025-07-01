@@ -12,7 +12,6 @@ import com.abcd.modpack.version.VersionManager;
 
 import java.awt.Desktop;
 import java.net.URI;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -52,8 +51,12 @@ public class Updater {
             System.err.println("予期しないエラーが発生しました: " + e.getMessage());
             e.printStackTrace();
             guiManager.showErrorDialog("予期しないエラーが発生しました:\n" + e.getMessage(), "エラー");
+        } catch (Throwable e) {
+            System.err.println("予期しないエラーが発生しました: " + e.getMessage());
+            e.printStackTrace();
+            guiManager.showErrorDialog("予期しないエラーが発生しました:\n" + e.getMessage(), "エラー");
         } finally {
-            guiManager.showInfoDialog("終了します", "通知");
+            //guiManager.showInfoDialog("終了します", "通知");
             // 処理完了後にウィンドウを閉じる
             guiManager.closeWindow();
         }
@@ -173,16 +176,20 @@ public class Updater {
             System.out.println("servers.dat に既に mc.a-b-c-d.com のサーバーエントリが存在します。");
         }
 
-        // 9. CA 証明書の確認とインストール
+        // 9. options.txt の更新
+        FileUtils.updateOptions(gameDir);
+
+        // 10. CA 証明書の確認とインストール
         CertificateManager.checkAndInstallCACertificate(guiManager);
 
-        // 10. 完了メッセージ
+        // 12. 完了メッセージ
         String completionMessage = "正常に完了しました。マインクラフトのランチャーを起動します。起動構成「A-B-C-D " + 
             versionManager.getMinecraftVersion() + "」から起動してください。";
         System.out.println(completionMessage);
         guiManager.showInfoDialog(completionMessage, "通知");
 
-        // 11. ランチャーの起動
+        // 13. ランチャーの起動
         new ProcessBuilder("explorer.exe", "shell:AppsFolder\\Microsoft.4297127D64EC6_8wekyb3d8bbwe!Minecraft").start();
+
     }
 }

@@ -1,0 +1,7 @@
+version:4435
+resourcePacks:["vanilla","fabric","file/Faithful-64x-Java-1.21.6.zip","file/AngelWing.zip"]
+lang:ja_jp
+skipMultiplayerWarning:true
+joinedFirstServer:true
+onboardAccessibility:false
+soundCategory_master:0.10264900662251655
