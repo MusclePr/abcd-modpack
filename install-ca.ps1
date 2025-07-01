@@ -86,7 +86,7 @@ if ($Uninstall) {
 } else {
     if (!(Test-Path $CertPath)) {
         Write-Host "エラー: CA証明書ファイルが見つかりません: $CertPath" -ForegroundColor Red
-        Write-Host "最初に証明書を作成してください: .\create-test-certificate.ps1" -ForegroundColor Yellow
+        Write-Host "最初に証明書を作成してください: .\create-certificate.ps1" -ForegroundColor Yellow
         Read-Host "続行するには何かキーを押してください"
         exit 1
     }

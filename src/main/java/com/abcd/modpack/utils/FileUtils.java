@@ -8,6 +8,12 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import dev.dewy.nbt.Nbt;
+import dev.dewy.nbt.tags.collection.CompoundTag;
+import dev.dewy.nbt.tags.collection.ListTag;
+import dev.dewy.nbt.tags.primitive.ByteTag;
+import dev.dewy.nbt.tags.primitive.StringTag;
+
 /**
  * ファイル操作のユーティリティクラス
  * ZIP展開、ファイル削除、パターンマッチングなどの機能を提供します
@@ -185,4 +191,127 @@ public class FileUtils {
             System.out.println("ディレクトリを作成しました: " + dirPath);
         }
     }
+    
+   /**
+     * server.dat (NBT 形式) にサーバーエントリを含むかどうかを確認します。
+     * @param serverDatPath server.dat のパス
+     * @param address サーバーアドレス
+     * @return サーバーエントリが存在する場合は true
+     * 
+     * servers.dat の構造:
+     * {
+     *   "servers": [
+     *     {
+     *       acceptTextures: 1
+     *       hidden: 0
+     *       ip: "mc.a-b-c-d.com"
+     *       name: "A-B-C-D Server"
+     *     }
+     *   ]
+     * }
+     */
+    public static boolean containsServerEntry(Path serverDatPath, String address) {
+        try {
+            if (!Files.exists(serverDatPath)) {
+                return false;
+            }
+            
+            // NBT ライブラリで servers.dat を読み込み
+            Nbt nbt = new Nbt();
+            CompoundTag root = nbt.fromFile(serverDatPath.toFile());
+
+            // "servers" リストを取得
+            if (!root.contains("servers")) {
+                return false;
+            }
+            
+            ListTag<CompoundTag> servers = root.getList("servers");
+            if (servers == null) {
+                return false;
+            }
+            
+            // 各サーバーエントリの IP アドレスを確認
+            for (CompoundTag server : servers) {
+                if (server.contains("ip")) {
+                    StringTag ipTag = server.getString("ip");
+                    if (ipTag != null && address.equals(ipTag.getValue())) {
+                        System.out.println("サーバーエントリが見つかりました: " + address);
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        } catch (IOException e) {
+            System.err.println("servers.dat の読み込みに失敗しました: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * servers.dat にサーバーエントリを追加します。
+     * @param serverDatPath servers.dat のパス
+     * @param address サーバーアドレス
+     * @param name サーバー名
+     */
+    public static void addServerEntry(Path serverDatPath, String address, String name) {
+        try {
+            Nbt nbt = new Nbt();
+            CompoundTag root;
+            ListTag<CompoundTag> servers;
+            
+            // 既存の servers.dat ファイルを読み込むか、新規作成
+            if (Files.exists(serverDatPath)) {
+                root = nbt.fromFile(serverDatPath.toFile());
+                
+                // "servers" リストを取得または作成
+                if (root.contains("servers")) {
+                    servers = root.getList("servers");
+                } else {
+                    servers = new ListTag<>("servers");
+                    root.put(servers);
+                }
+            } else {
+                // 新規 servers.dat ファイルを作成
+                root = new CompoundTag();
+                servers = new ListTag<>("servers");
+                root.put(servers);
+                
+                // 親ディレクトリが存在しない場合は作成
+                Files.createDirectories(serverDatPath.getParent());
+            }
+            
+            // 既にサーバーエントリが存在するかチェック
+            boolean alreadyExists = false;
+            for (CompoundTag server : servers) {
+                if (server.contains("ip")) {
+                    StringTag ipTag = server.getString("ip");
+                    if (ipTag != null && address.equals(ipTag.getValue())) {
+                        alreadyExists = true;
+                        System.out.println("サーバーエントリは既に存在します: " + address);
+                        break;
+                    }
+                }
+            }
+            
+            // 存在しない場合は新しいサーバーエントリを追加
+            if (!alreadyExists) {
+                CompoundTag newServer = new CompoundTag();
+                newServer.put(new StringTag("name", name));
+                newServer.put(new StringTag("ip", address));
+                newServer.put(new ByteTag("acceptTextures", (byte) 1));
+                newServer.put(new ByteTag("hidden", (byte) 0));
+                
+                servers.add(newServer);
+                
+                // ファイルに保存
+                nbt.toFile(root, serverDatPath.toFile());
+                System.out.println("サーバーエントリを追加しました: " + name + " (" + address + ")");
+            }
+            
+        } catch (IOException e) {
+            System.err.println("servers.dat へのサーバー追加に失敗しました: " + e.getMessage());
+        }
+    }
+
 }

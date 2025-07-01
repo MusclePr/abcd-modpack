@@ -4,6 +4,15 @@
 Write-Host "A-B-C-D Modpack EXE ビルダー" -ForegroundColor Green
 Write-Host "========================"
 
+$launch4jPath = "C:/Program Files (x86)/Launch4j/launch4jc.exe"
+if (Test-Path $launch4jPath) {
+} else {
+    Write-Host $launch4jPath -ForegroundColor Red
+    Write-Host "Launch4j が見つかりません。手動でEXEを作成してください。" -ForegroundColor Yellow
+    Write-Host "または Launch4j をインストールしてパスを確認してください。" -ForegroundColor Yellow
+    exit 1
+}
+
 Write-Host "`nステップ1: CA証明書の確認と更新..." -ForegroundColor Yellow
 
 # CA証明書ファイルの確認と更新処理
@@ -56,7 +65,7 @@ if (Test-Path $caCertSourcePath) {
 } else {
     Write-Host "警告: CA証明書が見つかりません: $caCertSourcePath" -ForegroundColor Yellow
     Write-Host "CA証明書を作成する場合は以下のコマンドを実行してください:" -ForegroundColor Gray
-    Write-Host "  .\create-test-certificate.ps1" -ForegroundColor Cyan
+    Write-Host "  .\create-certificate.ps1" -ForegroundColor Cyan
 }
 
 Write-Host "`nステップ2: JAR のクリーンビルド..." -ForegroundColor Yellow
@@ -68,7 +77,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Host "`nステップ3: Launch4j でEXE作成中..." -ForegroundColor Yellow
+Write-Host "`nステップ3: Launch4j で EXE 作成中..." -ForegroundColor Yellow
 
 # Launch4jの設定ファイルが存在するかチェック
 if (!(Test-Path "launch4j-config.xml")) {
@@ -120,20 +129,14 @@ if (Test-Path $iconSourcePath) {
 }
 
 # Launch4jを実行（環境に応じてパスを調整）
-$launch4jPath = "C:\Program Files (x86)\Launch4j\launch4jc.exe"
-if (Test-Path $launch4jPath) {
-    Write-Host "Launch4j 実行中: $launch4jPath" -ForegroundColor Gray
-    Write-Host "設定ファイル: launch4j-config.xml" -ForegroundColor Gray
-    & $launch4jPath "launch4j-config.xml"
-    
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Launch4j が正常に完了しました" -ForegroundColor Green
-    } else {
-        Write-Host "警告: Launch4j がエラーコード $LASTEXITCODE で終了しました" -ForegroundColor Yellow
-    }
+Write-Host "Launch4j 実行中: $launch4jPath" -ForegroundColor Gray
+Write-Host "設定ファイル: launch4j-config.xml" -ForegroundColor Gray
+& $launch4jPath "launch4j-config.xml"
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "✓ Launch4j が正常に完了しました" -ForegroundColor Green
 } else {
-    Write-Host "Launch4jが見つかりません。手動でEXEを作成してください。" -ForegroundColor Yellow
-    Write-Host "または Launch4j をインストールしてパスを確認してください。" -ForegroundColor Yellow
+    Write-Host "警告: Launch4j がエラーコード $LASTEXITCODE で終了しました" -ForegroundColor Yellow
 }
 
 Write-Host "`nビルドが正常に完了しました！" -ForegroundColor Green
@@ -175,7 +178,7 @@ if (Test-Path "icon.ico") {
     Write-Host "`n一時的なアイコンファイルをクリーンアップしました" -ForegroundColor Gray
 }
 
-& .\sign-exe-advanced.ps1
+& .\sign-exe.ps1
 
 Write-Host "`n次のステップ:"
 Write-Host "  1. EXEファイルをテスト: .\target\abcd-modpack-updater.exe" -ForegroundColor White

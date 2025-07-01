@@ -12,6 +12,7 @@ import com.abcd.modpack.version.VersionManager;
 
 import java.awt.Desktop;
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -52,6 +53,7 @@ public class Updater {
             e.printStackTrace();
             guiManager.showErrorDialog("予期しないエラーが発生しました:\n" + e.getMessage(), "エラー");
         } finally {
+            guiManager.showInfoDialog("終了します", "通知");
             // 処理完了後にウィンドウを閉じる
             guiManager.closeWindow();
         }
@@ -162,13 +164,25 @@ public class Updater {
         // 7. Modpack リストの処理
         ModpackProcessor.processModpackList(gameDir, versionManager.getMinecraftVersion());
 
-        // 8. CA 証明書の確認とインストール
+        // 8. NBTファイルの servers.dat に mc.a-b-c-d.com へのサーバーが無ければ追加
+        Path serverDatPath = gameDir.resolve("servers.dat");
+        if (!FileUtils.containsServerEntry(serverDatPath, "mc.a-b-c-d.com")) {
+            FileUtils.addServerEntry(serverDatPath, "mc.a-b-c-d.com", "A-B-C-D Server");
+            System.out.println("サーバーエントリを server.dat に追加しました: mc.a-b-c-d.com");
+        } else {
+            System.out.println("servers.dat に既に mc.a-b-c-d.com のサーバーエントリが存在します。");
+        }
+
+        // 9. CA 証明書の確認とインストール
         CertificateManager.checkAndInstallCACertificate(guiManager);
 
-        // 9. 完了メッセージ
-        String completionMessage = "正常に完了しました。マインクラフトのランチャーを起動して、起動構成「A-B-C-D " + 
+        // 10. 完了メッセージ
+        String completionMessage = "正常に完了しました。マインクラフトのランチャーを起動します。起動構成「A-B-C-D " + 
             versionManager.getMinecraftVersion() + "」から起動してください。";
         System.out.println(completionMessage);
         guiManager.showInfoDialog(completionMessage, "通知");
+
+        // 11. ランチャーの起動
+        new ProcessBuilder("explorer.exe", "shell:AppsFolder\\Microsoft.4297127D64EC6_8wekyb3d8bbwe!Minecraft").start();
     }
 }

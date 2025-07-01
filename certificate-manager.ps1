@@ -103,7 +103,7 @@ if ($ListCertificates) {
         }
     } else {
         Write-Host "証明書ディレクトリが見つかりません。" -ForegroundColor Yellow
-        Write-Host "最初に create-test-certificate.ps1 を実行してください。" -ForegroundColor Yellow
+        Write-Host "最初に create-certificate.ps1 を実行してください。" -ForegroundColor Yellow
     }
     
     Write-Host "`nインストール済み証明書（個人ストア）:" -ForegroundColor Cyan
@@ -177,7 +177,7 @@ if ($InstallCA) {
     
     if (!(Test-Path $caCertPath)) {
         Write-Host "エラー: CA証明書ファイルが見つかりません: $caCertPath" -ForegroundColor Red
-        Write-Host "最初に create-test-certificate.ps1 を実行してください。" -ForegroundColor Yellow
+        Write-Host "最初に create-certificate.ps1 を実行してください。" -ForegroundColor Yellow
         exit 1
     }
     

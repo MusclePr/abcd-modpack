@@ -79,8 +79,8 @@ PASSWORD="Cx!3.-a8K/Vw"
 ### 自己認証局とコードサイニング証明書の作成
 
 ```powershell
-# テスト用証明書を作成（.envファイルからパスワードを自動読み込み）
-.\create-test-certificate.ps1
+# 証明書を作成（.envファイルからパスワードを自動読み込み）
+.\create-certificate.ps1
 ```
 
 このスクリプトは以下を作成します：
@@ -100,15 +100,14 @@ certificates/
 
 ### EXEファイルへの署名
 
+`.\sign-exe.ps1` は、Launch4j EXE 内の JAR 構造を保護する特殊な署名手法を使用します：
+
 ```powershell
 # 標準署名（PowerShell署名）
 .\sign-exe.ps1
 
-# 高度な署名手法（Launch4j JAR構造保護、推奨）
-.\sign-exe-advanced.ps1
-
 # 詳細情報付きで実行
-.\sign-exe-advanced.ps1 -ShowDetails
+.\sign-exe.ps1 -ShowDetails
 
 # 明示的にPFXファイルとパスワードを指定
 .\sign-exe.ps1 -PfxPath ".\certificates\code-signing-certificate.pfx" -Password "カスタムパスワード"
@@ -117,21 +116,17 @@ certificates/
 .\sign-exe.ps1 -CertThumbprint "証明書の拇印"
 ```
 
-#### 高度な署名手法について
-
-`.\sign-exe-advanced.ps1` は、Launch4j EXE内のJAR構造を保護する革新的な署名手法を使用します：
-
 ##### 技術的背景
 
-Launch4jの **wrapping** モードでは、JARファイルがEXE内に埋め込まれますが、従来の署名方法では以下の問題が発生していました：
+Launch4jの **wrapping** モードでは、JAR ファイルが EXE 内に埋め込まれますが、従来の署名方法では以下の問題が発生していました：
 
-- **JAR破損**: 署名データの追加により内部JARのオフセットがずれる
-- **ZIP構造の破綻**: Central Directoryの位置情報が無効になる
+- **JAR破損**: 署名データの追加により内部 JAR のオフセットがずれる
+- **ZIP構造の破綻**: Central Directory の位置情報が無効になる
 - **実行エラー**: 「Invalid or corrupt jarfile」エラーが発生
 
 ##### Comment Length 手法の原理
 
-この手法では、ZIP形式の **Comment Length** フィールドを活用して署名データを適切に処理します：
+この手法では、ZIP 形式の **Comment Length** フィールドを活用して署名データを適切に処理します：
 
 ```
 ZIP End of Central Directory (EOCD) 構造:
@@ -152,20 +147,20 @@ ZIP End of Central Directory (EOCD) 構造:
 
 1. **署名サイズ測定**: 一時ファイルで署名後のサイズ増加を計算
 2. **EOCD検出**: ZIP End of Central Directory の位置を特定
-3. **Comment Length更新**: 署名データサイズをComment Lengthに設定
+3. **Comment Length更新**: 署名データサイズを Comment Length に設定
 4. **最終署名**: 修正されたファイルに署名を適用
 
 **メリット:**
 
-- ✅ **JAR構造保護**: Central Directoryの位置・サイズ情報は変更せず
-- ✅ **単体配布**: JAR内包型EXEとして配布可能
-- ✅ **完全互換性**: 標準的なZIP/JAR形式との互換性を維持
+- ✅ **JAR構造保護**: Central Directory の位置・サイズ情報は変更せず
+- ✅ **単体配布**: JAR 内包型 EXE として配布可能
+- ✅ **完全互換性**: 標準的な ZIP/JAR 形式との互換性を維持
 - ✅ **自動化**: 手動操作不要の完全自動化
 
 **制限事項:**
 
-- Comment Lengthは2バイト（最大65535バイト）の制限があります
-- 署名サイズが65535バイトを超える場合は標準署名にフォールバック
+- Comment Lengthは 2 バイト（最大 65535 バイト）の制限があります
+- 署名サイズが 65535 バイトを超える場合は標準署名にフォールバック
 
 ### 証明書管理
 
@@ -185,7 +180,7 @@ ZIP End of Central Directory (EOCD) 構造:
 ### 注意事項
 
 - **開発・テスト専用**: 作成される証明書は自己署名証明書であり、本番環境では使用しないでください
-- **セキュリティ**: パスワードは`.env`ファイルで管理されます。このファイルは絶対にリポジトリにコミットしないでください
+- **セキュリティ**: パスワードは `.env` ファイルで管理されます。このファイルは絶対にリポジトリにコミットしないでください
 - **信頼性**: 自己署名証明書で署名されたファイルは、CA証明書をルート証明書ストアにインストールするまで「信頼されていない」として扱われます
 - **商用証明書**: 本番環境では、DigiCert、Symantec、Comodo等の商用証明書を使用してください
 
@@ -203,10 +198,10 @@ ZIP End of Central Directory (EOCD) 構造:
 Launch4j を使用して Windows 実行ファイルを作成できます：
 
 ```powershell
-# EXE作成（従来の方法）
+# 署名付きEXE作成
 .\build-exe.ps1
 
-# 署名付きEXE作成（推奨）
+# 署名付きEXE作成
 .\dev-build.ps1
 ```
 
@@ -253,7 +248,7 @@ java -jar target\abcd-modpack-1.0.jar --help
 ```
 
 **特徴：**
-- すべてのコマンドライン引数はGUIウィンドウ内に出力を表示
+- すべてのコマンドライン引数は GUI ウィンドウ内に出力を表示
 - 処理完了後は「閉じる」ボタンでウィンドウを終了
 - 別のコンソールウィンドウは開かない
 
@@ -275,8 +270,8 @@ abcd-modpack/
 ├── pom.xml                              # Maven設定ファイル
 ├── launch4j-config.xml                  # Launch4j設定ファイル
 ├── build-exe.ps1                       # EXE作成スクリプト
-├── sign-exe-advanced.ps1               # EXE署名スクリプト
-├── create-test-certificate.ps1         # テスト証明書作成スクリプト
+├── sign-exe.ps1                        # EXE署名スクリプト
+├── create-certificate.ps1              # テスト証明書作成スクリプト
 ├── dev-build.ps1                       # 統合ビルド・署名スクリプト
 ├── certificate-manager.ps1             # 証明書管理スクリプト
 └── abcd-modpack.ps1                     # 旧実行スクリプト

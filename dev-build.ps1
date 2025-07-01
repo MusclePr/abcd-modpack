@@ -3,8 +3,6 @@
 
 param(
     [switch]$CreateCertificate,
-    [switch]$SignOnly,
-    [switch]$BuildOnly,
     [switch]$InstallCA,
     [switch]$CleanAll,
     [string]$CertPassword = "",
@@ -57,7 +55,7 @@ function Start-ElevatedProcess {
         $processInfo.Verb = "runas"
         $processInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Normal
         
-        $process = [System.Diagnostics.Process]::Start($processInfo)
+        [System.Diagnostics.Process]::Start($processInfo)
         
         # 現在のプロセスを終了
         exit 0
@@ -71,26 +69,21 @@ function Start-ElevatedProcess {
 }
 
 # パラメータ処理
-if (!$CreateCertificate -and !$SignOnly -and !$BuildOnly -and !$InstallCA -and !$CleanAll) {
+if (!$CreateCertificate -and !$InstallCA -and !$CleanAll) {
     Write-Host "使用方法:" -ForegroundColor White
     Write-Host "  .\dev-build.ps1 -CreateCertificate    # テスト用証明書を作成" -ForegroundColor Gray
-    Write-Host "  .\dev-build.ps1 -BuildOnly            # EXEファイルのビルドのみ" -ForegroundColor Gray
-    Write-Host "  .\dev-build.ps1 -SignOnly             # 署名処理のみ" -ForegroundColor Gray
     Write-Host "  .\dev-build.ps1                       # 全処理（ビルド→署名）" -ForegroundColor Gray
     Write-Host "  .\dev-build.ps1 -InstallCA            # CA証明書をルートストアにインストール" -ForegroundColor Gray
     Write-Host "  .\dev-build.ps1 -CleanAll             # 全ての生成物を削除" -ForegroundColor Gray
     Write-Host ""
     
-    $choice = Read-Host "何を実行しますか？ [1]全処理 [2]証明書作成のみ [3]ビルドのみ [4]署名のみ [5]クリーンアップ (1-5)"
+    $choice = Read-Host "何を実行しますか？ [1]全処理 [2]証明書作成のみ [3]クリーンアップ (1-3)"
     switch ($choice) {
-        "1" { $BuildOnly = $false; $SignOnly = $false }
+        "1" {}
         "2" { $CreateCertificate = $true }
-        "3" { $BuildOnly = $true }
-        "4" { $SignOnly = $true }
-        "5" { $CleanAll = $true }
+        "3" { $CleanAll = $true }
         default { 
             Write-Host "デフォルトで全処理を実行します。" -ForegroundColor Yellow
-            $BuildOnly = $false; $SignOnly = $false 
         }
     }
 }
@@ -119,13 +112,13 @@ if ($CleanAll) {
 }
 
 # CA証明書の確認と準備処理
-Write-Host "`nステップ0: CA証明書の確認と準備..." -ForegroundColor Cyan
+Write-Host "`nステップ0: CA 証明書の確認と準備..." -ForegroundColor Cyan
 
 $caCertSourcePath = "certificates/ca-certificate.pem"
 $caCertTargetPath = "src/main/resources/ca-certificate.pem"
 
 if (Test-Path $caCertSourcePath) {
-    Write-Host "✓ CA証明書ファイルが見つかりました: $caCertSourcePath" -ForegroundColor Green
+    Write-Host "✓ CA 証明書ファイルが見つかりました: $caCertSourcePath" -ForegroundColor Green
     
     # ソースとターゲットのファイル比較
     if (Test-Path $caCertTargetPath) {
@@ -133,14 +126,14 @@ if (Test-Path $caCertSourcePath) {
         $targetHash = (Get-FileHash $caCertTargetPath -Algorithm MD5).Hash
         
         if ($sourceHash -eq $targetHash) {
-            Write-Host "✓ CA証明書は既に最新です" -ForegroundColor Green
+            Write-Host "✓ CA 証明書は既に最新です" -ForegroundColor Green
         } else {
-            Write-Host "CA証明書が古いバージョンです。更新しています..." -ForegroundColor Yellow
+            Write-Host "CA 証明書が古いバージョンです。更新しています..." -ForegroundColor Yellow
             Copy-Item $caCertSourcePath $caCertTargetPath -Force
-            Write-Host "✓ CA証明書を更新しました: $caCertTargetPath" -ForegroundColor Green
+            Write-Host "✓ CA 証明書を更新しました: $caCertTargetPath" -ForegroundColor Green
         }
     } else {
-        Write-Host "CA証明書がresourcesディレクトリにありません。コピーしています..." -ForegroundColor Yellow
+        Write-Host "CA 証明書が resources ディレクトリにありません。コピーしています..." -ForegroundColor Yellow
         # resourcesディレクトリが存在しない場合は作成
         $resourcesDir = Split-Path $caCertTargetPath -Parent
         if (!(Test-Path $resourcesDir)) {
@@ -148,10 +141,10 @@ if (Test-Path $caCertSourcePath) {
             Write-Host "✓ resourcesディレクトリを作成しました: $resourcesDir" -ForegroundColor Green
         }
         Copy-Item $caCertSourcePath $caCertTargetPath -Force
-        Write-Host "✓ CA証明書をコピーしました: $caCertTargetPath" -ForegroundColor Green
+        Write-Host "✓ CA 証明書をコピーしました: $caCertTargetPath" -ForegroundColor Green
     }
 } else {
-    Write-Host "警告: CA証明書が見つかりません: $caCertSourcePath" -ForegroundColor Yellow
+    Write-Host "警告: CA 証明書が見つかりません: $caCertSourcePath" -ForegroundColor Yellow
     if (-not $CreateCertificate) {
         Write-Host "証明書が見つからないため、証明書作成フラグを有効にします..." -ForegroundColor Yellow
         $CreateCertificate = $true
@@ -160,8 +153,8 @@ if (Test-Path $caCertSourcePath) {
 
 # 証明書作成処理
 if ($CreateCertificate) {
-    Write-Host "`nステップ1: テスト用証明書を作成中..." -ForegroundColor Cyan
-    & .\create-test-certificate.ps1 -CertPassword $CertPassword -Force:$Force
+    Write-Host "`nステップ1: 証明書を作成中..." -ForegroundColor Cyan
+    & .\create-certificate.ps1 -CertPassword $CertPassword -Force:$Force
     
     if ($LASTEXITCODE -ne 0) {
         Write-Host "エラー: 証明書の作成に失敗しました。" -ForegroundColor Red
@@ -169,31 +162,31 @@ if ($CreateCertificate) {
     }
     
     # 新しく作成されたCA証明書をリソースにコピー
-    Write-Host "新しく作成されたCA証明書をリソースディレクトリにコピー中..." -ForegroundColor Gray
+    Write-Host "新しく作成された CA 証明書をリソースディレクトリにコピー中..." -ForegroundColor Gray
     if (Test-Path $caCertSourcePath) {
         # resourcesディレクトリが存在しない場合は作成
         $resourcesDir = Split-Path $caCertTargetPath -Parent
         if (!(Test-Path $resourcesDir)) {
             New-Item -ItemType Directory -Path $resourcesDir -Force | Out-Null
-            Write-Host "✓ resourcesディレクトリを作成しました: $resourcesDir" -ForegroundColor Green
+            Write-Host "✓ resources ディレクトリを作成しました: $resourcesDir" -ForegroundColor Green
         }
         Copy-Item $caCertSourcePath $caCertTargetPath -Force
-        Write-Host "✓ 新しいCA証明書をリソースにコピーしました: $caCertTargetPath" -ForegroundColor Green
+        Write-Host "✓ 新しい CA 証明書をリソースにコピーしました: $caCertTargetPath" -ForegroundColor Green
     }
     
     if ($InstallCA) {
-        Write-Host "`nCA証明書をルート証明書ストアにインストールしますか？" -ForegroundColor Yellow
+        Write-Host "`nCA 証明書をルート証明書ストアにインストールしますか？" -ForegroundColor Yellow
         Write-Host "（これにより、署名されたファイルが信頼済みとして認識されます）" -ForegroundColor Gray
         $install = Read-Host "[Y]はい [N]いいえ (Y/N)"
         
         if ($install -eq "Y" -or $install -eq "y") {
             if (!(Test-Administrator)) {
-                Write-Host "CA証明書のインストールには管理者権限が必要です。" -ForegroundColor Yellow
+                Write-Host "CA 証明書のインストールには管理者権限が必要です。" -ForegroundColor Yellow
                 $elevate = Read-Host "管理者権限で再起動しますか？ [Y]はい [N]いいえ (Y/N)"
                 if ($elevate -eq "Y" -or $elevate -eq "y") {
                     Start-ElevatedProcess "-CreateCertificate" "-InstallCA"
                 } else {
-                    Write-Host "CA証明書のインストールをスキップしました。" -ForegroundColor Yellow
+                    Write-Host "CA 証明書のインストールをスキップしました。" -ForegroundColor Yellow
                     Write-Host "後で手動でインストールできます: .\install-ca.ps1" -ForegroundColor Gray
                 }
             } else {
@@ -201,7 +194,7 @@ if ($CreateCertificate) {
                 if (Test-Path $caCertPath) {
                     try {
                         Import-Certificate -FilePath $caCertPath -CertStoreLocation Cert:\LocalMachine\Root
-                        Write-Host "CA証明書がルート証明書ストアにインストールされました。" -ForegroundColor Green
+                        Write-Host "CA 証明書がルート証明書ストアにインストールされました。" -ForegroundColor Green
                     } catch {
                         Write-Host "警告: CA証明書のインストールに失敗しました: $($_.Exception.Message)" -ForegroundColor Yellow
                     }
@@ -212,53 +205,16 @@ if ($CreateCertificate) {
     
     Write-Host "`n証明書の作成が完了しました！" -ForegroundColor Green
     
-    if (!$BuildOnly -and !$SignOnly) {
-        exit 0
-    }
+    exit 0
 }
 
 # ビルド処理
-if (!$SignOnly) {
-    Write-Host "`nステップ2: EXEファイルをビルド中..." -ForegroundColor Cyan
-    & .\build-exe.ps1
-    
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "エラー: ビルドに失敗しました。" -ForegroundColor Red
-        exit 1
-    }
-    
-    if ($BuildOnly) {
-        Write-Host "`nビルドが完了しました！" -ForegroundColor Green
-        exit 0
-    }
-}
+Write-Host "`nステップ2: EXEファイルをビルド中..." -ForegroundColor Cyan
+& .\build-exe.ps1
 
-# 署名処理
-if (!$BuildOnly) {
-    Write-Host "`nステップ3: EXEファイルに署名中..." -ForegroundColor Cyan
-    
-    $pfxPath = ".\certificates\code-signing-certificate.pfx"
-    if (!(Test-Path $pfxPath)) {
-        Write-Host "警告: 証明書ファイルが見つかりません: $pfxPath" -ForegroundColor Yellow
-        Write-Host "最初に証明書を作成してください: .\dev-build.ps1 -CreateCertificate" -ForegroundColor Yellow
-        exit 1
-    }
-
-    & .\sign-exe.ps1 -PfxPath $pfxPath -Password $CertPassword -Force:$Force
-    
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "エラー: 署名に失敗しました。" -ForegroundColor Red
-        exit 1
-    }
-    
-    # 署名後の検証
-    Write-Host "`nステップ4: 署名済みEXEファイルの検証中..." -ForegroundColor Cyan
-    & .\validate-exe.ps1 -ExePath ".\target\abcd-modpack-updater.exe"
-    
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "警告: EXEファイルの検証で問題が検出されました。" -ForegroundColor Yellow
-        Write-Host "署名前のバックアップファイルがある場合は、それを使用することを検討してください。" -ForegroundColor Yellow
-    }
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "エラー: ビルドに失敗しました。" -ForegroundColor Red
+    exit 1
 }
 
 # 最終確認
