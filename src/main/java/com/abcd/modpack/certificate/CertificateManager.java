@@ -214,8 +214,8 @@ public class CertificateManager {
             
             // PowerShell コマンドで証明書をインストール
             ProcessBuilder pb = new ProcessBuilder(
-                "powershell.exe", "-Command",
-                "Import-Certificate -FilePath '" + certPath.toString() + "' -CertStoreLocation Cert:\\LocalMachine\\Root"
+                "cmd.exe", "/c", "start", "powershell.exe", "-Command",
+                "Start-Process powershell.exe -ArgumentList 'Import-Certificate -FilePath \"" + certPath.toString() + "\" -CertStoreLocation Cert:\\LocalMachine\\Root' -Verb RunAs"
             );
             
             Process process = pb.start();
