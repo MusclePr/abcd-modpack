@@ -117,6 +117,7 @@ Write-Host "`nStep 4: 元のEXEファイルのZIP構造を解析中..." -Foregro
 
 try {
     # ファイルを読み込み
+    [System.IO.Directory]::SetCurrentDirectory($PWD) # .NET のカレントディレクトリを PowerShell の $PWD に同期
     $bytes = [System.IO.File]::ReadAllBytes($ExePath)
     
     # ZIP End of Central Directory signature (0x504B0506) を検索
@@ -223,13 +224,7 @@ try {
     
 } catch {
     Write-Host "エラー: ZIP構造の解析に失敗しました: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "標準署名処理にフォールバックします..." -ForegroundColor Yellow
-    
-    # フォールバック処理
-    $signature = Set-AuthenticodeSignature -FilePath $ExePath -Certificate $certificate
-    if ($signature.Status -eq "Valid") {
-        Write-Host "フォールバック署名が完了しました" -ForegroundColor Green
-    }
+    exit 1
 }
 
 # Step 7: 結果の確認
