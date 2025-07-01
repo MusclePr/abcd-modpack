@@ -43,29 +43,84 @@ public class GuiManager {
     
     /**
      * コンソール出力をGUIにリダイレクトする設定を行います
+     * 既存の出力ストリーム（ログファイル出力など）を保持したまま GUI にも出力します
      */
     private void setupConsoleRedirection() {
-        PrintStream console = new PrintStream(new OutputStream() {
+        // 既存の System.out と System.err を保存（TeeOutputStream が設定されている可能性がある）
+        PrintStream originalOut = System.out;
+        PrintStream originalErr = System.err;
+        
+        PrintStream consoleOut = new PrintStream(new OutputStream() {
             @Override
             // UTF-8での文字化けを防ぐため、OutputStreamWriterを使用
             public void write(byte[] b, int off, int len) {
+                // GUI に出力
                 String str = new String(b, off, len, StandardCharsets.UTF_8);
                 SwingUtilities.invokeLater(() -> {
                     textArea.append(str);
                     textArea.setCaretPosition(textArea.getDocument().getLength()); // 常に最新の出力を表示
                 });
+                
+                // 既存の出力ストリーム（ログファイルなど）にも出力
+                try {
+                    originalOut.write(b, off, len);
+                } catch (Exception e) {
+                    // ログファイル書き込みエラーは無視
+                }
             }
             
             public void write(int b) {
+                // GUI に出力
                 SwingUtilities.invokeLater(() -> {
                     textArea.append(String.valueOf((char) b));
                     textArea.setCaretPosition(textArea.getDocument().getLength()); // 常に最新の出力を表示
                 });
+                
+                // 既存の出力ストリーム（ログファイルなど）にも出力
+                try {
+                    originalOut.write(b);
+                } catch (Exception e) {
+                    // ログファイル書き込みエラーは無視
+                }
             }
         });
         
-        System.setOut(console);
-        System.setErr(console);
+        PrintStream consoleErr = new PrintStream(new OutputStream() {
+            @Override
+            public void write(byte[] b, int off, int len) {
+                // GUI に出力
+                String str = new String(b, off, len, StandardCharsets.UTF_8);
+                SwingUtilities.invokeLater(() -> {
+                    textArea.append(str);
+                    textArea.setCaretPosition(textArea.getDocument().getLength());
+                });
+                
+                // 既存のエラー出力ストリーム（ログファイルなど）にも出力
+                try {
+                    originalErr.write(b, off, len);
+                } catch (Exception e) {
+                    // ログファイル書き込みエラーは無視
+                }
+            }
+            
+            public void write(int b) {
+                // GUI に出力
+                SwingUtilities.invokeLater(() -> {
+                    textArea.append(String.valueOf((char) b));
+                    textArea.setCaretPosition(textArea.getDocument().getLength());
+                });
+                
+                // 既存のエラー出力ストリーム（ログファイルなど）にも出力
+                try {
+                    originalErr.write(b);
+                } catch (Exception e) {
+                    // ログファイル書き込みエラーは無視
+                }
+            }
+        });
+        
+        System.setOut(consoleOut);
+        System.setErr(consoleErr);
     }
     
     /**

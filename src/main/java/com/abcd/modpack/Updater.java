@@ -8,9 +8,13 @@ import com.abcd.modpack.modpack.ModpackProcessor;
 import com.abcd.modpack.process.ProcessManager;
 import com.abcd.modpack.profile.ProfileManager;
 import com.abcd.modpack.utils.FileUtils;
+import com.abcd.modpack.utils.TeeOutputStream;
 import com.abcd.modpack.version.VersionManager;
 
 import java.awt.Desktop;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,6 +25,13 @@ import java.nio.file.Paths;
  */
 public class Updater {
     public static void main(String[] args) throws Exception {
+        // 作業ディレクトリの作成（ログ出力のため最初に実行）
+        Path gameDir = Paths.get(System.getenv("APPDATA"), ".minecraft_abcd");
+        FileUtils.ensureDirectoryExists(gameDir);
+        
+        // ログファイルの設定
+        setupLogFile(gameDir);
+        
         // GUI マネージャーを初期化
         GuiManager guiManager = new GuiManager();
         guiManager.showWindow();
@@ -45,7 +56,7 @@ public class Updater {
             }
 
             // メインの更新処理を実行
-            runMainUpdateProcess(guiManager);
+            runMainUpdateProcess(gameDir, guiManager);
 
         } catch (Exception e) {
             System.err.println("予期しないエラーが発生しました: " + e.getMessage());
@@ -59,6 +70,44 @@ public class Updater {
             //guiManager.showInfoDialog("終了します", "通知");
             // 処理完了後にウィンドウを閉じる
             guiManager.closeWindow();
+        }
+    }
+
+    /**
+     * ログファイルの設定を行います
+     * TeeOutputStream を使用してコンソールとログファイルの両方に出力します
+     */
+    private static void setupLogFile(Path gameDir) {
+        try {
+            Path logFilePath = gameDir.resolve("updater.log");
+            
+            // ログファイルを強制的に作成・上書き
+            FileOutputStream logFile = new FileOutputStream(logFilePath.toFile(), false); // 上書きモード
+            
+            // 元の System.out と System.err を保存
+            OutputStream originalOut = System.out;
+            OutputStream originalErr = System.err;
+            
+            // TeeOutputStream を使用して、コンソールとログファイルの両方に出力
+            TeeOutputStream teeOut = new TeeOutputStream(originalOut, logFile);
+            TeeOutputStream teeErr = new TeeOutputStream(originalErr, logFile);
+            
+            // UTF-8 エンコーディングで PrintStream を作成（autoFlush = true）
+            PrintStream teePrintStreamOut = new PrintStream(teeOut, true, "UTF-8");
+            PrintStream teePrintStreamErr = new PrintStream(teeErr, true, "UTF-8");
+            
+            // System.out と System.err を TeeOutputStream に設定
+            System.setOut(teePrintStreamOut);
+            System.setErr(teePrintStreamErr);
+            
+            System.out.println("ログ出力を開始しました: " + logFilePath);
+            System.out.println("ログファイル設定完了");
+            System.out.flush(); // 強制的にフラッシュ
+            
+        } catch (Exception e) {
+            // ログファイル設定に失敗した場合は標準出力にエラーを表示
+            System.err.println("ログファイル設定エラー: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -121,10 +170,10 @@ public class Updater {
     /**
      * メインの更新処理を実行します
      */
-    private static void runMainUpdateProcess(GuiManager guiManager) throws Exception {
+    private static void runMainUpdateProcess(Path gameDir, GuiManager guiManager) throws Exception {
         System.out.println("A-B-C-D Modpack Updater を開始します...");
 
-        // 1. バージョン確認
+        // 2. バージョン確認
         VersionManager versionManager = new VersionManager();
         versionManager.fetchLatestVersionInfo();
 
@@ -137,11 +186,6 @@ public class Updater {
             Desktop.getDesktop().browse(URI.create("https://a-b-c-d.com/modpacks/#arkb-toc-1"));
             return;
         }
-
-        // 2. 作業ディレクトリの作成
-        Path gameDir = Paths.get(System.getenv("APPDATA"), ".minecraft_abcd");
-        FileUtils.ensureDirectoryExists(gameDir);
-        System.out.println("作業ディレクトリ: " + gameDir);
 
         // 3. Minecraft プロセスの確認
         ProcessManager.waitForMinecraftExit(guiManager);
@@ -183,10 +227,10 @@ public class Updater {
         CertificateManager.checkAndInstallCACertificate(guiManager);
 
         // 12. 完了メッセージ
-        String completionMessage = "正常に完了しました。マインクラフトのランチャーを起動します。起動構成「A-B-C-D " + 
-            versionManager.getMinecraftVersion() + "」から起動してください。";
+        String completionMessage = "マインクラフトのランチャーを起動します。\n起動構成「A-B-C-D " + 
+            versionManager.getMinecraftVersion() + "」からプレイしてください。";
         System.out.println(completionMessage);
-        guiManager.showInfoDialog(completionMessage, "通知");
+        guiManager.showInfoDialog(completionMessage, "正常に完了しました。");
 
         // 13. ランチャーの起動
         new ProcessBuilder("explorer.exe", "shell:AppsFolder\\Microsoft.4297127D64EC6_8wekyb3d8bbwe!Minecraft").start();
