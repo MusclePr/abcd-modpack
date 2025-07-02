@@ -23,14 +23,15 @@
 hs_err_pid*
 replay_pid*
 
-# Certificate files and private keys (DO NOT COMMIT TO PRODUCTION)
-certificates/
-*.pfx
-*.p12
-*.key
-*.pem
-*.crt
-*.cer
+# certificates ディレクトリ内の秘密鍵・PFXのみ除外
+certificates/ca-private-key.pem
+certificates/code-signing-private-key.pem
+certificates/code-signing-certificate.pfx
+
+# 公開証明書・シリアル番号ファイルは管理対象に含める
+!certificates/ca-certificate.pem
+!certificates/code-signing-certificate.pem
+!certificates/ca-certificate.srl
 
 # Environment files with sensitive information
 .env
