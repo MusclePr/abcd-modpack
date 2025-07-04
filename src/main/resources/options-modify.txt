@@ -4,4 +4,7 @@ lang:ja_jp
 skipMultiplayerWarning:true
 joinedFirstServer:true
 onboardAccessibility:false
+key_key.saveToolbarActivator:key.keyboard.unknown
+key_key.loadToolbarActivator:key.keyboard.unknown
+key_key.quickActions:key.keyboard.unknown
 soundCategory_master:0.10264900662251655

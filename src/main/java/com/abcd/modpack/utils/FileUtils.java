@@ -347,8 +347,10 @@ lang:ja_jp
 skipMultiplayerWarning:true
 joinedFirstServer:true
 onboardAccessibility:false
+key_key.saveToolbarActivator:key.keyboard.unknown
+key_key.loadToolbarActivator:key.keyboard.unknown
+key_key.quickActions:key.keyboard.unknown
 soundCategory_master:0.1
-     * 
      */
     public static void updateOptions(Path gameDir) {
         Path optionsFile = gameDir.resolve("options.txt");
@@ -397,6 +399,9 @@ soundCategory_master:0.1
         dict.put("skipMultiplayerWarning", "true");
         dict.put("joinedFirstServer", "true");
         dict.put("onboardAccessibility", "false");
+        dict.put("key_key.saveToolbarActivator", "key.keyboard.unknown");
+        dict.put("key_key.loadToolbarActivator", "key.keyboard.unknown");
+        dict.put("key_key.quickActions", "key.keyboard.unknown");
         dict.put("soundCategory_master", "0.10264900662251655");
         
         // options.txt を１行ずつ読み込み

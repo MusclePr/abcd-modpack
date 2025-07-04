@@ -104,13 +104,13 @@ public class ProfileManager {
             "      \"gameDir\": \"%s\",\n" +
             "      \"icon\": \"%s\",\n" +
             "      \"javaArgs\": \"%s\",\n" +
-            "      \"lastUsed\": \"1970-01-01T00:00:00.000Z\",\n" +
+            "      \"lastUsed\": \"%s\",\n" +
             "      \"lastVersionId\": \"%s\",\n" +
             "      \"name\": \"%s\",\n" +
             "      \"type\": \"custom\"\n" +
             "    }",
             profileId, created, gameDirEscaped, PROFILE_ICON_BASE64, 
-            JAVA_ARGS, versionId, profileName
+            JAVA_ARGS, created, versionId, profileName
         );
     }
     
