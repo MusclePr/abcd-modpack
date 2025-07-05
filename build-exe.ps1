@@ -1,6 +1,15 @@
 ﻿# ABCD Modpack EXE ビルダー
 # Launch4jを使用してJARファイルからEXEファイルを作成します
 
+if ($env:JAVA_HOME -eq $null) {
+    if (Test-Path "C:\jdk\jdk-21.0.3") {
+        $env:JAVA_HOME = "C:\jdk\jdk-21.0.3"
+    } else {
+        Write-Host "Java JDK 21 が見つかりません。JDKをインストールしてください。" -ForegroundColor Red
+        exit 1
+    }
+}
+
 Write-Host "A-B-C-D Modpack EXE ビルダー" -ForegroundColor Green
 Write-Host "========================"
 

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <launch4jConfig>
   <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
@@ -15,7 +15,7 @@
   <manifest></manifest>
   <icon>icon.ico</icon>
   <jre>
-    <path>%JAVA_HOME%;%PATH%</path>
+    <path>%JAVA_HOME%;%PATH%;%LOCALAPPDATA%/Packages/Microsoft.4297127D64EC6_8wekyb3d8bbwe/LocalCache/Local/runtime/java-runtime-delta/windows-x64/java-runtime-delta</path>
     <requiresJdk>false</requiresJdk>
     <requires64Bit>false</requires64Bit>
     <minVersion>17</minVersion>
